@@ -1,8 +1,16 @@
+# Handling relays automatically.
+# Send several txs from eth to near, then from near to eth back.
+# If `no_txs_in_same_block`, it's expected there are no txs that included into same block.
+
 import sys, time
 
 if len(sys.argv) < 3:
     print("python end2end.py <eth2near_tx_number> <near2eth_tx_number>")
     exit(1)
+
+no_txs_in_same_block = False
+if 'no_txs_in_same_block' in sys.argv:
+    no_txs_in_same_block = True
 
 eth2near_tx_number = int(sys.argv[1])
 near2eth_tx_number = int(sys.argv[2])
@@ -33,6 +41,8 @@ for _ in range(eth2near_tx_number):
                          'rainbow_bridge_eth_on_near_prover',
                          'rainbow_bridge_eth_on_near_prover',
                          1000))
+    if no_txs_in_same_block:
+        time.sleep(15)
 exit_codes = [p.wait() for p in txs]
 
 eth_balance_after = bridge.get_eth_balance(eth_address)
@@ -50,6 +60,8 @@ print('=== SENDING 1 NEAR TO ETH PER TX, %d TXS' % (near2eth_tx_number))
 txs = []
 for _ in range(near2eth_tx_number):
     txs.append(bridge.transfer_near2eth('rainbow_bridge_eth_on_near_prover', eth_address, 1))
+    if no_txs_in_same_block:
+        time.sleep(15)
 exit_codes = [p.wait() for p in txs]
 
 eth_balance_after = bridge.get_eth_balance(eth_address)
