@@ -217,15 +217,17 @@ pub fn encode_string(s: &str) -> Vec<u8> {
     bytes
 }
 
-struct Arg {
+#[derive(Debug, Eq, PartialEq)]
+pub struct Arg {
     #[allow(dead_code)]
-    name: String,
-    t: String,
+    pub name: String,
+    pub t: String,
 }
 
-struct Method {
-    name: String,
-    args: Vec<Arg>,
+#[derive(Debug, Eq, PartialEq)]
+pub struct Method {
+    pub name: String,
+    pub args: Vec<Arg>,
 }
 
 impl Arg {
@@ -268,7 +270,7 @@ impl Method {
         Ok((Method { name, args }, remains))
     }
 
-    fn methods_from_method_name(method_name: &str) -> Result<Vec<Method>> {
+    pub fn methods_from_method_name(method_name: &str) -> Result<Vec<Method>> {
         let mut method_name = method_name;
         let mut methods = vec![];
         while method_name.len() > 0 {
@@ -451,4 +453,44 @@ pub fn ecrecover_address(hash: &RawHash, signature: &[u8; 65]) -> Address {
         }
     }
     Address::zero()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_method() {
+        let methods = Method::methods_from_method_name(
+            "Blah(Foo q,Bar w)Foo(uint256 x,Bar z)Bar(T ttt)T(string x)",
+        )
+        .unwrap();
+        assert!(
+            methods
+                == vec![
+                    Method {
+                        name: "Blah".into(),
+                        args: vec![
+                            Arg { name: "q".into(), t: "Foo".into() },
+                            Arg { name: "w".into(), t: "Bar".into() }
+                        ]
+                    },
+                    Method {
+                        name: "Foo".into(),
+                        args: vec![
+                            Arg { name: "x".into(), t: "uint256".into() },
+                            Arg { name: "z".into(), t: "Bar".into() }
+                        ]
+                    },
+                    Method {
+                        name: "Bar".into(),
+                        args: vec![Arg { name: "ttt".into(), t: "T".into() }]
+                    },
+                    Method {
+                        name: "T".into(),
+                        args: vec![Arg { name: "x".into(), t: "string".into() }]
+                    }
+                ]
+        );
+    }
 }
