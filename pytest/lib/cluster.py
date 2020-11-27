@@ -939,6 +939,7 @@ DEFAULT_CONFIG = {
         'config_dir': '~/.rainbow',
         'ganache_dir': 'testing/vendor/ganache',
         'ganache_bin': 'testing/vendor/ganache/node_modules/.bin/ganache-cli',
+        'ganache_block_prod_time': 4,
     }
 }
 

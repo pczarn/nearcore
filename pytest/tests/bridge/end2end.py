@@ -5,12 +5,18 @@
 import sys, time
 
 if len(sys.argv) < 3:
-    print("python end2end.py <eth2near_tx_number> <near2eth_tx_number>")
+    print("python end2end.py <eth2near_tx_number> <near2eth_tx_number> [...]")
     exit(1)
 
 no_txs_in_same_block = False
 if 'no_txs_in_same_block' in sys.argv:
     no_txs_in_same_block = True
+
+no_txs_in_parallel = False
+if 'no_txs_in_parallel' in sys.argv:
+    no_txs_in_parallel = True
+
+assert not (no_txs_in_same_block and no_txs_in_parallel) # to avoid errors
 
 eth2near_tx_number = int(sys.argv[1])
 near2eth_tx_number = int(sys.argv[2])
@@ -42,7 +48,9 @@ for _ in range(eth2near_tx_number):
                          'rainbow_bridge_eth_on_near_prover',
                          1000))
     if no_txs_in_same_block:
-        time.sleep(15)
+        time.sleep(bridge.config['ganache_block_prod_time'] + 2)
+    if no_txs_in_parallel:
+        [p.wait() for p in txs]
 exit_codes = [p.wait() for p in txs]
 
 eth_balance_after = bridge.get_eth_balance(eth_address)
@@ -61,7 +69,9 @@ txs = []
 for _ in range(near2eth_tx_number):
     txs.append(bridge.transfer_near2eth('rainbow_bridge_eth_on_near_prover', eth_address, 1))
     if no_txs_in_same_block:
-        time.sleep(15)
+        time.sleep(2.6) # default min_block_production_delay = 0.6
+    if no_txs_in_parallel:
+        [p.wait() for p in txs]
 exit_codes = [p.wait() for p in txs]
 
 eth_balance_after = bridge.get_eth_balance(eth_address)
