@@ -9,6 +9,25 @@ import time
 import traceback
 import os
 
+class BridgeUser(object):
+
+    def __init__(self, name, eth_secret_key, eth_amount):
+        self.name = name
+        self.eth_secret_key = eth_secret_key
+        self.eth_amount = eth_amount
+        self.near_account = name + '.near'
+        # TODO create accounts
+        if name == 'alice':
+            self.near_account = 'test0'
+        self.near_amount = 0
+
+# 10000000000000000000000000000 = 1000000000 tokens
+billion_tokens = 10000000000000000000000000000
+bridge_master_account = BridgeUser('bridge_master_account', '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501200', billion_tokens)
+alice = BridgeUser('alice', '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501201', billion_tokens)
+bob = BridgeUser('bob', '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501202', billion_tokens)
+charlie = BridgeUser('charlie', '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501203', billion_tokens)
+daniel_no_money = BridgeUser('daniel_no_money', '0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501204', 0)
 
 def atexit_cleanup(obj):
     print("Cleaning %s on script exit" % (obj.__class__.__name__))
@@ -97,9 +116,12 @@ class GanacheNode(Cleanable):
                 str(self.config['ganache_block_prod_time']),
                 '--gasLimit',
                 '10000000',
-                '--account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501200,10000000000000000000000000000"',
-                '--account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501201,10000000000000000000000000000"',
-                '--account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501202,10000000000000000000000000000"'],
+                '--account="%s,%d"' % (alice.eth_secret_key, alice.eth_amount),
+                '--account="%s,%d"' % (bob.eth_secret_key, bob.eth_amount),
+                '--account="%s,%d"' % (charlie.eth_secret_key, charlie.eth_amount),
+                '--account="%s,%d"' % (daniel_no_money.eth_secret_key, daniel_no_money.eth_amount),
+                '--account="%s,%d"' % (bridge_master_account.eth_secret_key, bridge_master_account.eth_amount)
+            ],
             stdout=self.stdout,
             stderr=self.stderr).pid
         assert self.pid.value != 0
@@ -112,7 +134,7 @@ class Near2EthBlockRelay(Cleanable):
 
     def start(
             self,
-            eth_master_secret_key='0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501201'):
+            eth_master_secret_key=bridge_master_account.eth_secret_key):
         self.stdout = open(
             os.path.join(
                 self.config_dir,
@@ -290,7 +312,7 @@ class RainbowBridge:
         self.near2eth_block_relay = Near2EthBlockRelay(self.config)
         self.near2eth_block_relay.start()
 
-    def transfer_eth2near(self, sender, receiver, near_master_account, amount):
+    def transfer_eth2near(self, sender, receiver, amount, near_master_account='rainbow_bridge_eth_on_near_prover'):
         args = (
             'node index.js transfer-eth-erc20-to-near --amount %d --eth-sender-sk %s --near-receiver-account %s --near-master-account %s' %
             (amount, sender, receiver, near_master_account)).split()
